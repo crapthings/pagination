@@ -15,7 +15,7 @@ function isRowLoaded (list) {
 
 function loadMoreRows ({ startIndex, stopIndex }) {
   if (stopIndex - startIndex > 50) {
-    console.log(startIndex, stopIndex, stopIndex - startIndex,this.subHandler.data('limit') + 100)
+    // console.log(startIndex, stopIndex, stopIndex - startIndex,this.subHandler.data('limit') + 100)
     // this.subHandler.setData('limit', this.subHandler.data('limit') + 100)
     this.Limit.set(this.Limit.get() + 100)
   }
@@ -33,10 +33,14 @@ export class B extends Component {
     Meteor.autorun((c) => {
       const limit = this.Limit.get()
       this.c = c
-      this.subHandler = Meteor.subscribe('issues.by.group')
+      this.subHandler = Meteor.subscribe('issues.by.group.alt')
+      // this.subHandler = Meteor.subscribe('issues.by.group')
       this.subHandler.setData('limit', limit)
       if (this.subHandler.ready()) {
-        const issues = Issues.find({}, { sort: { idx: 1 } }).fetch()
+        // alt
+        const issues = Issues.find().fetch()[0]['data']
+        // const issues = Issues.find({}, { sort: { idx: 1 } }).fetch()
+        console.log('rerun')
         _.each(issues, issue => {
           if (this.records[issue._id]) return
           Hold.insert(issue)
