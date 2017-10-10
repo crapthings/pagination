@@ -7,11 +7,11 @@ Meteor.publish('issues', function (limit = 100) {
   return Issues.find({}, { sort: { createdAt: -1 }, limit })
 })
 
-Meteor.publish('issues.by.group', function (limit = 100) {
+Meteor.publish('issues.by.group', function () {
   this.unblock()
   const self = this
   const groups = Groups.find({}, { sort: { name: 1 }, fields: { name: 1, type: 1 } }).fetch()
-  const groupsKeyById = _.keyBy(groups, '_id')
+  // const groupsKeyById = _.keyBy(groups, '_id')
 
   const _groups = generator(groups)
   let _issues = []
