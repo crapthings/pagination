@@ -2,60 +2,58 @@ import _ from 'lodash'
 import moment from 'moment'
 import faker from 'faker'
 
-Test.remove({})
-
-const data = _.times(2000, n => ({
-  title: faker.lorem.sentence(),
-  createdAt: faker.date.past(),
-  type: _.sample(['哈尔滨', '沈阳', '北京', '加拿大', '新西兰', '日本', '美国']),
-}))
-
-Test.batchInsert(data)
-
-Meteor.publish('test', function (limit = 30) {
+Meteor.publish('issues', function (limit = 100) {
   this.unblock()
-  return Test.find({}, { limit })
+  return Issues.find({}, { sort: { createdAt: -1 }, limit })
 })
 
-var a = null
-
-Meteor.publish('test1', function (limit = 100) {
+Meteor.publish('issues.by.group', function (limit = 100) {
   this.unblock()
-  let alreadySent = []
-  const data = _.chain(Test.find().fetch())
-    .groupBy('type')
-    .toPairs()
-    .flattenDeep()
-    .map((d, n) => {
-      if (_.isString(d)) {
-        const _d = { _id: Random.id(), title: d, idx: n }
-        return _d
-      } else {
-        d.idx = n
-        return d
-      }
-    })
-    .value()
+  const self = this
+  const groups = Groups.find({}, { sort: { name: 1 }, fields: { name: 1, type: 1 } }).fetch()
+  const groupsKeyById = _.keyBy(groups, '_id')
 
-  console.log('rerun')
+  const _groups = generator(groups)
+  let _issues = []
+  let count
+  let idx = 1
 
-  // this.autorun(c => {
-  //   console.log('data length', data.length)
-  //   const limit = (this.data('limit')) - 1
-    // const test = _.slice(data, limit - 99, limit)
-    const test = _.take(data, limit)
-    console.log(limit)
-    _.each(test, t => {
-      if (! _.includes(alreadySent, t._id)) {
-        this.added('test', t._id, { ...t })
-        alreadySent.push(t._id)
-      }
-    })
-  // })
-
-  // this.onStop(() => {
-  //   console.log(123123123, 'stop')
-  // })
+  this.autorun(c => {
+    this.c = c
+    count = 0
+    console.log(this.data('limit'))
+    prepareData()
+  })
 
   this.ready()
+
+  this.onStop(() => {
+    this.c.stop()
+  })
+
+  function prepareData() {
+    const group = _groups.next().value
+    if (_.isUndefined(group)) return
+    const issues = Issues.find({ groupId: group._id }, { fields: { title: 1 } }).fetch()
+    if (_.isEmpty(issues)) return prepareData()
+    _issues = _.concat(_issues, group, issues)
+    if (_issues.length < 100) {
+      prepareData()
+    } else {
+      console.log(_issues.length)
+      _.remove(_issues, issue => {
+        if (count < 100) {
+          self.added('issues', issue._id, { ...issue, idx })
+          count ++
+          idx ++
+          return true
+        }
+      })
+      console.log(_issues.length)
+    }
+  }
+
+  function* generator(array) {
+    yield* array
+  }
 })

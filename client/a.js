@@ -28,9 +28,9 @@ export class A extends Component {
     Meteor.autorun((c) => {
       this.c = c
       const limit = this.Limit.get()
-      this.subHandler = Meteor.subscribe('test', limit)
+      this.subHandler = Meteor.subscribe('issues', limit)
       if (this.subHandler.ready()) {
-        const list = Test.find().fetch()
+        const list = Issues.find({}, { sort: { createdAt: -1 } }).fetch()
         this.setState({ list, loading: false, remoteRowCount: 5000 })
       }
     })
@@ -51,9 +51,8 @@ export class A extends Component {
         rowCount={remoteRowCount}
         threshold={30}
       >
-
         {({ onRowsRendered, registerChild }) => <List
-          width={300}
+          width={512}
           height={300}
           rowHeight={20}
           rowCount={list.length}
@@ -62,7 +61,7 @@ export class A extends Component {
           rowRenderer={({ key, index, style }) => {
             const item = list[index]
             return <div key={key} style={{...style, overflow: 'hidden', textOverflow: 'ellipsis'}}>
-              {index + 1}: {item.type}: {item.title}
+              {index + 1}: {item.title}
             </div>
           }}
         />}

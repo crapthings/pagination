@@ -1,6 +1,3 @@
-Test = new Mongo.Collection('test', {
-  transform(doc) {
-    doc.abc = 1
-    return doc
-  }
-})
+Groups = new Mongo.Collection('groups')
+Issues = new Mongo.Collection('issues')
+Test = new Mongo.Collection('test')

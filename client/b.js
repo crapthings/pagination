@@ -5,6 +5,8 @@ import React, { Component } from 'react'
 import { render } from 'react-dom'
 import { InfiniteLoader, List } from 'react-virtualized'
 
+const Hold = new Mongo.Collection()
+
 function isRowLoaded (list) {
   return function ({ index }) {
     return !!list[index]
@@ -24,16 +26,23 @@ export class B extends Component {
     super()
     this.Limit = new ReactiveVar(100)
     this.state = { list: [], loading: true }
+    this.records = {}
   }
 
   componentDidMount() {
     Meteor.autorun((c) => {
+      const limit = this.Limit.get()
       this.c = c
-      this.subHandler = Meteor.subscribe('test1', this.Limit.get())
-      this.subHandler.setData('limit', this.limit)
+      this.subHandler = Meteor.subscribe('issues.by.group')
+      this.subHandler.setData('limit', limit)
       if (this.subHandler.ready()) {
-        const list = Test.find({}, { sort: { idx: 1 } }).fetch()
-        console.log(list.length)
+        const issues = Issues.find({}, { sort: { idx: 1 } }).fetch()
+        _.each(issues, issue => {
+          if (this.records[issue._id]) return
+          Hold.insert(issue)
+          this.records[issue._id] = true
+        })
+        const list = Hold.find({}, { sort: { idx: 1 } }).fetch()
         this.setState({ list, loading: false, remoteRowCount: 5000 })
       }
     })
@@ -42,6 +51,7 @@ export class B extends Component {
   componentWillUnmount() {
     this.c.stop()
     this.subHandler.stop()
+    Hold.remove({})
   }
 
   render() {
@@ -56,7 +66,7 @@ export class B extends Component {
       >
 
         {({ onRowsRendered, registerChild }) => <List
-          width={300}
+          width={512}
           height={300}
           rowHeight={20}
           rowCount={list.length}
@@ -65,7 +75,7 @@ export class B extends Component {
           rowRenderer={({ key, index, style }) => {
             const item = list[index]
             return <div key={key} style={{...style, overflow: 'hidden', textOverflow: 'ellipsis'}}>
-              {index} {item.idx}: {item.type}: {item.title}
+              {index + 1} {item.type}: {item.title || item.name}
             </div>
           }}
         />}
